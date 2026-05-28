@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cardiovascular Disease Prediction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            animation: shimmer 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes shimmer {
+            0% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            animation: pulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.02); }
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        .form-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            position: relative;
+            animation: slideInUp 0.6s ease-out;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .form-group input:hover, .form-group select:hover {
+            border-color: #bdc3c7;
+            transform: translateY(-1px);
+        }
+
+        .predict-btn {
+            width: 100%;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .predict-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .predict-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .predict-btn.loading {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            cursor: not-allowed;
+        }
+
+        .predict-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .predict-btn:active::after {
+            width: 300px;
+            height: 300px;
+        }
+
+        .result-container {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+
+        .result-container.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .result-container.low-risk {
+            background: linear-gradient(135deg, #a8e6cf 0%, #81c784 100%);
+            border-left: 5px solid #4caf50;
+        }
+
+        .result-container.moderate-risk {
+            background: linear-gradient(135deg, #ffd54f 0%, #ffb74d 100%);
+            border-left: 5px solid #ff9800;
+        }
+
+        .result-container.high-risk {
+            background: linear-gradient(135deg, #ffcdd2 0%, #ef5350 100%);
+            border-left: 5px solid #f44336;
+        }
+
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .probability-display {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            animation: numberCount 1s ease-out;
+        }
+
+        @keyframes numberCount {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .risk-level {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.3);
+            display: inline-block;
+        }
+
+        .details {
+            font-size: 1rem;
+            color: #34495e;
+            line-height: 1.6;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #ffcdd2 0%, #ef5350 100%);
+            color: #d32f2f;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+
+        .health-tips {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
+            border-radius: 12px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .health-tips h3 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .health-tips ul {
+            color: #388e3c;
+            line-height: 1.8;
+            padding-left: 20px;
+        }
+
+        .heart-icon {
+            display: inline-block;
+            color: #e74c3c;
+            animation: heartbeat 1.5s ease-in-out infinite;
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .floating-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                opacity: 0;
+                transform: translateY(100vh) scale(0);
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100vh) scale(1);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .form-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .probability-display {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-particles">
+        <div class="particle" style="left: 10%; animation-delay: 0s; width: 10px; height: 10px;"></div>
+        <div class="particle" style="left: 20%; animation-delay: 2s; width: 8px; height: 8px;"></div>
+        <div class="particle" style="left: 30%; animation-delay: 4s; width: 12px; height: 12px;"></div>
+        <div class="particle" style="left: 40%; animation-delay: 6s; width: 6px; height: 6px;"></div>
+        <div class="particle" style="left: 50%; animation-delay: 8s; width: 14px; height: 14px;"></div>
+        <div class="particle" style="left: 60%; animation-delay: 10s; width: 8px; height: 8px;"></div>
+        <div class="particle" style="left: 70%; animation-delay: 12s; width: 10px; height: 10px;"></div>
+        <div class="particle" style="left: 80%; animation-delay: 14s; width: 12px; height: 12px;"></div>
+        <div class="particle" style="left: 90%; animation-delay: 16s; width: 8px; height: 8px;"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1><span class="heart-icon">❤️</span>CVD Risk Predictor</h1>
+            <p>Advanced cardiovascular disease risk assessment based on blood test parameters</p>
+        </div>
+
+        <form id="predictionForm">
+            <div class="form-container">
+                <div class="form-group">
+                    <label for="age">Age (years)</label>
+                    <input type="number" id="age" name="age" min="20" max="100" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender" required>
+                        <option value="">Select Gender</option>
+                        <option value="0">Female</option>
+                        <option value="1">Male</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="systolic_bp">Systolic BP (mmHg)</label>
+                    <input type="number" id="systolic_bp" name="systolic_bp" min="80" max="250" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="diastolic_bp">Diastolic BP (mmHg)</label>
+                    <input type="number" id="diastolic_bp" name="diastolic_bp" min="50" max="150" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="total_cholesterol">Total Cholesterol (mg/dL)</label>
+                    <input type="number" id="total_cholesterol" name="total_cholesterol" min="100" max="400" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="ldl_cholesterol">LDL Cholesterol (mg/dL)</label>
+                    <input type="number" id="ldl_cholesterol" name="ldl_cholesterol" min="50" max="300" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="hdl_cholesterol">HDL Cholesterol (mg/dL)</label>
+                    <input type="number" id="hdl_cholesterol" name="hdl_cholesterol" min="20" max="100" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="triglycerides">Triglycerides (mg/dL)</label>
+                    <input type="number" id="triglycerides" name="triglycerides" min="50" max="500" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="glucose">Glucose (mg/dL)</label>
+                    <input type="number" id="glucose" name="glucose" min="60" max="300" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="hba1c">HbA1c (%)</label>
+                    <input type="number" id="hba1c" name="hba1c" min="4" max="12" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="crp">C-Reactive Protein (mg/L)</label>
+                    <input type="number" id="crp" name="crp" min="0.1" max="50" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="troponin">Troponin (ng/mL)</label>
+                    <input type="number" id="troponin" name="troponin" min="0.001" max="10" step="0.001" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="bnp">BNP (pg/mL)</label>
+                    <input type="number" id="bnp" name="bnp" min="10" max="2000" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="homocysteine">Homocysteine (μmol/L)</label>
+                    <input type="number" id="homocysteine" name="homocysteine" min="5" max="50" step="0.1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="smoking">Smoking Status</label>
+                    <select id="smoking" name="smoking" required>
+                        <option value="">Select Status</option>
+                        <option value="0">Non-smoker</option>
+                        <option value="1">Smoker</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="family_history">Family History of CVD</label>
+                    <select id="family_history" name="family_history" required>
+                        <option value="">Select Option</option>
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="bmi">BMI (kg/m²)</label>
+                    <input type="number" id="bmi" name="bmi" min="15" max="50" step="0.1" required>
+                </div>
+            </div>
+
+            <button type="submit" class="predict-btn" id="predictBtn">
+                <span id="btnText">Predict CVD Risk</span>
+            </button>
+        </form>
+
+        <div class="loading-spinner" id="loadingSpinner"></div>
+        <div class="error-message" id="errorMessage"></div>
+
+        <div id="resultContainer" class="result-container">
+            <div class="result-title" id="resultTitle"></div>
+            <div class="probability-display" id="probabilityDisplay"></div>
+            <div class="risk-level" id="riskLevel"></div>
+            <div class="details" id="resultDetails"></div>
+        </div>
+
+        <div class="health-tips">
+            <h3><span class="heart-icon">💡</span>General Heart Health Tips</h3>
+            <ul>
+                <li>Maintain a balanced diet rich in fruits, vegetables, and whole grains</li>
+                <li>Exercise regularly - aim for at least 150 minutes of moderate activity per week</li>
+                <li>Avoid smoking and limit alcohol consumption</li>
+                <li>Manage stress through relaxation techniques and adequate sleep</li>
+                <li>Monitor your blood pressure and cholesterol levels regularly</li>
+                <li>Consult with healthcare professionals for personalized advice</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = {};
+            
+            // Convert form data to object
+            for (let [key, value] of formData.entries()) {
+                data[key] = value;
+            }
+            
+            // Show loading state
+            showLoading();
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayResult(result);
+                } else {
+                    showError(result.error || 'An error occurred during prediction');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        });
+        
+        function showLoading() {
+            document.getElementById('predictBtn').classList.add('loading');
+            document.getElementById('btnText').textContent = 'Processing...';
+            document.getElementById('predictBtn').disabled = true;
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('resultContainer').classList.remove('show');
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+        
+        function hideLoading() {
+            document.getElementById('predictBtn').classList.remove('loading');
+            document.getElementById('btnText').textContent = 'Predict CVD Risk';
+            document.getElementById('predictBtn').disabled = false;
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+        
+        function displayResult(result) {
+            const container = document.getElementById('resultContainer');
+            const title = document.getElementById('resultTitle');
+            const probability = document.getElementById('probabilityDisplay');
+            const riskLevel = document.getElementById('riskLevel');
+            const details = document.getElementById('resultDetails');
+            
+            // Set content
+            title.textContent = result.prediction === 1 ? 'Positive CVD Risk Detected' : 'Low CVD Risk';
+            probability.textContent = result.percentage + '%';
+            riskLevel.textContent = result.risk_level;
+            
+            // Set risk-specific styling
+            container.className = 'result-container show';
+            if (result.risk_level === 'Low Risk') {
+                container.classList.add('low-risk');
+                details.innerHTML = `
+                    <p><strong>Good news!</strong> Based on your blood test parameters, you have a low risk of cardiovascular disease.</p>
+                    <p>Continue maintaining your healthy lifestyle and regular check-ups with your healthcare provider.</p>
+                `;
+            } else if (result.risk_level === 'Moderate Risk') {
+                container.classList.add('moderate-risk');
+                details.innerHTML = `
+                    <p><strong>Moderate risk detected.</strong> Consider lifestyle modifications and regular monitoring.</p>
+                    <p>Consult with your healthcare provider about preventive measures and treatment options.</p>
+                `;
+            } else {
+                container.classList.add('high-risk');
+                details.innerHTML = `
+                    <p><strong>High risk detected.</strong> Immediate medical consultation is recommended.</p>
+                    <p>Please contact your healthcare provider as soon as possible to discuss these results and appropriate interventions.</p>
+                `;
+            }
+            
+            details.innerHTML += `<p><small><em>Prediction made on: ${result.timestamp}</em></small></p>`;
+            
+            // Add animation delay
+            setTimeout(() => {
+                container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('resultContainer').classList.remove('show');
+        }
+        
+        // Add input validation and formatting
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', function() {
+                if (this.value < 0) this.value = 0;
+            });
+            
+            input.addEventListener('focus', function() {
+                this.style.transform = 'translateY(-2px)';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+        
+        // Add form validation
+        function validateForm() {
+            const requiredFields = document.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.style.borderColor = '#e74c3c';
+                    isValid = false;
+                } else {
+                    field.style.borderColor = '#e1e8ed';
+                }
+            });
+            
+            return isValid;
+        }
+        
+        // Real-time form validation
+        document.querySelectorAll('[required]').forEach(field => {
+            field.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    this.style.borderColor = '#27ae60';
+                } else {
+                    this.style.borderColor = '#e1e8ed';
+                }
+            });
+        });
+        
+        // Add sample data button for testing
+        function fillSampleData() {
+            document.getElementById('age').value = '55';
+            document.getElementById('gender').value = '1';
+            document.getElementById('systolic_bp').value = '140';
+            document.getElementById('diastolic_bp').value = '90';
+            document.getElementById('total_cholesterol').value = '220';
+            document.getElementById('ldl_cholesterol').value = '130';
+            document.getElementById('hdl_cholesterol').value = '40';
+            document.getElementById('triglycerides').value = '180';
+            document.getElementById('glucose').value = '110';
+            document.getElementById('hba1c').value = '6.2';
+            document.getElementById('crp').value = '3.5';
+            document.getElementById('troponin').value = '0.05';
+            document.getElementById('bnp').value = '150';
+            document.getElementById('homocysteine').value = '16';
+            document.getElementById('smoking').value = '1';
+            document.getElementById('family_history').value = '1';
+            document.getElementById('bmi').value = '28.5';
+        }
+        
+        // Add sample data button to header
+        window.addEventListener('load', function() {
+            const header = document.querySelector('.header');
+            const sampleBtn = document.createElement('button');
+            sampleBtn.textContent = 'Fill Sample Data';
+            sampleBtn.style.cssText = `
+                margin-top: 15px;
+                padding: 8px 16px;
+                background: linear-gradient(135deg, #74b9ff, #0984e3);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 0.9rem;
+                transition: all 0.3s ease;
+            `;
+            sampleBtn.addEventListener('click', fillSampleData);
+            header.appendChild(sampleBtn);
+        });
+    </script>
+</body>
+</html>
